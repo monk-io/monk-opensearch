@@ -1,0 +1,206 @@
+namespace: opensearch
+
+base:
+  name: opensearch
+  description: Single-node OpenSearch instance
+  defines: runnable
+  containers:
+    node:
+      image: opensearchproject/opensearch:latest
+      ports:
+        - 9200:9200
+        - 9600:9600
+      paths:
+        - '<- `${monk-volume-path}/opensearch:/usr/share/opensearch/data`'
+      ulimits:
+        memlock:
+          soft: -1
+          hard: -1
+        nofile:
+          soft: 65536
+          hard: 65536
+  services:
+    http-service:
+      container: node
+      port: 9200
+      protocol: tcp
+      host-port: 9200
+      publish: false
+    rest-service:
+      container: node
+      port: 9600
+      protocol: tcp
+      host-port: 9600
+      publish: false
+  variables:
+    defines: variables
+    cluster-name:
+      description: Set the cluster name for OpenSearch.
+      type: string
+      value: "opensearch-cluster"
+      env: "cluster.name"
+    password:
+      description: Set the initial admin password for OpenSearch.
+      type: string
+      value: "ciscjkdwxkmdc2353dsklmsk"
+      env: "OPENSEARCH_INITIAL_ADMIN_PASSWORD"
+    disable-security:
+      description: Disable security plugin for OpenSearch.
+      type: bool
+      value: true
+      env: "DISABLE_SECURITY_PLUGIN"
+    bootstrap:
+      description: Set the bootstrap memory lock for OpenSearch.
+      type: string
+      value: "true"
+      env: "bootstrap.memory_lock"
+    opensearch:
+      description: Set the OpenSearch memory lock for OpenSearch.
+      type: string
+      value: "-Xms512m -Xmx512m"
+      env: "OPENSEARCH_JAVA_OPTS"
+
+
+single-node:
+  defines: runnable
+  inherits: opensearch/base
+  connections:
+    opensearch-node2:
+      runnable: opensearch/opensearch-node2
+      service: http-service
+  variables:
+    defines: variables
+    node-name:
+      description: Set the node name for OpenSearch.
+      type: string
+      value: "opensearch-node1"
+      env: "node.name"
+    discovery:
+      description: Set the discovery type for OpenSearch.
+      type: string
+      value: "single-node"
+      env: "discovery.type"
+
+opensearch-node1:
+  defines: runnable
+  inherits: opensearch/base
+  connections:
+    opensearch-node1:
+      runnable: opensearch/opensearch-node2
+      service: http-servicev
+  variables:
+    defines: variables
+    node-name:
+      description: Set the node name for OpenSearch.
+      type: string
+      value: "opensearch-node1"
+      env: "node.name"
+    discovery-seed-hosts:
+      description: Set the discovery seed hosts for OpenSearch.
+      type: string
+      value: <- connection-hostname("opensearch-node1")
+      env: "discovery.seed_hosts"
+    cluster-init:
+      description: Set the initial cluster state for OpenSearch.
+      type: string
+      value: <- connection-hostname("opensearch-node1")
+      env: "cluster.initial_cluster_manager_nodes"
+
+opensearch-node2:
+  defines: runnable
+  inherits: opensearch/base
+  connections:
+    opensearch-node1:
+      runnable: opensearch/opensearch-node1
+      service: http-service
+  variables:
+    defines: variables
+    node-name:
+      description: Set the node name for OpenSearch.
+      type: string
+      value: "opensearch-node2"
+      env: "node.name"
+    discovery-seed-hosts:
+      description: Set the discovery seed hosts for OpenSearch.
+      type: string
+      value: <- connection-hostname("opensearch-node2")
+      env: "discovery.seed_hosts"
+    cluster-init:
+      description: Set the initial cluster state for OpenSearch.
+      type: string
+      value: <- connection-hostname("opensearch-node2")
+      env: "cluster.initial_cluster_manager_nodes"
+
+base-dashboards:
+  defines: runnable
+  containers:
+    dashboards:
+      image: opensearchproject/opensearch-dashboards:latest
+      ports:
+        - 5601:5601
+  services:
+    http-service:
+      container: dashboards
+      port: 5601
+      protocol: tcp
+      host-port: 5601
+      publish: false
+
+opensearch-single-dashboards:
+  defines: runnable
+  inherits: opensearch/base-dashboards
+  connections:
+    opensearch-node:
+      runnable: opensearch/single-node
+      service: http-service
+  variables:
+    defines: variables
+    hosts:
+      description: Set the OpenSearch Dashboards name.
+      type: string
+      value: <- `["http://` connection-hostname("opensearch-node") ":" connection-port("opensearch-node") `"]` concat-all
+      env: "OPENSEARCH_HOSTS"
+    disable-security:
+      description: Disable security plugin for OpenSearch Dashboards.
+      type: bool
+      value: true
+      env: "DISABLE_SECURITY_DASHBOARDS_PLUGIN"
+
+opensearch-double-dashboards:
+  defines: runnable
+  inherits: opensearch/base-dashboards
+  connections:
+    opensearch-node1:
+      runnable: opensearch/opensearch-node1
+      service: http-service
+    opensearch-node2:
+      runnable: opensearch/opensearch-node2
+      service: http-service
+  variables:
+    defines: variables
+    hosts:
+      description: Set the OpenSearch Dashboards name.
+      type: string
+      value: <- `["http://` connection-hostname("opensearch-node1") `:` connection-port("opensearch-node1") `","http://` connection-hostname("opensearch-node2") `:` connection-port("opensearch-node2") `"]` concat-all
+      env: "OPENSEARCH_HOSTS"
+    disable-security:
+      description: Disable security plugin for OpenSearch Dashboards.
+      type: bool
+      value: true
+      env: "DISABLE_SECURITY_DASHBOARDS_PLUGIN"
+
+
+double-node-stack:
+  defines: process-group
+  runnable-list:
+    - opensearch/opensearch-node1
+    - opensearch/opensearch-node2
+    - opensearch/opensearch-double-dashboards
+
+single-node-stack:
+  defines: process-group
+  runnable-list:
+    - opensearch/single-node
+    - opensearch/opensearch-single-dashboards
+
+

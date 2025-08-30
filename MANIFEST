@@ -1,0 +1,2 @@
+REPO monk-opensearch
+LOAD opensearch.yaml
