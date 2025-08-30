@@ -32,14 +32,14 @@ not connected to cluster
 ### Clone Repository
 
 ``` bash
-$ git clone git@github.com:monk-io/templates.git
+$ git clone git@github.com:monk-io/monk-opensearch.git
 ```
 
 ### Load Template
 
 ``` bash
 $ cd monk-opensearch
-$ monk load opensearch.yaml
+$ monk load MANIFEST
 ```
 
 ## Deploy OpenSearch
