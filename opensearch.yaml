@@ -7,18 +7,15 @@ base:
   containers:
     node:
       image: opensearchproject/opensearch:latest
-      ports:
-        - 9200:9200
-        - 9600:9600
       paths:
         - '<- `${monk-volume-path}/opensearch:/usr/share/opensearch/data`'
-      ulimits:
-        memlock:
-          soft: -1
-          hard: -1
-        nofile:
-          soft: 65536
-          hard: 65536
+#      ulimits:
+#        memlock:
+#          soft: -1
+#          hard: -1
+#        nofile:
+#          soft: 65536
+#          hard: 65536
   services:
     http-service:
       container: node
@@ -42,39 +39,30 @@ base:
     password:
       description: Set the initial admin password for OpenSearch.
       type: string
-      value: "ciscjkdwxkmdc2353dsklmsk"
+      value: "Cscjkdwxkmdc2353dsklmsk@"
       env: "OPENSEARCH_INITIAL_ADMIN_PASSWORD"
     disable-security:
       description: Disable security plugin for OpenSearch.
       type: bool
       value: true
       env: "DISABLE_SECURITY_PLUGIN"
-    bootstrap:
-      description: Set the bootstrap memory lock for OpenSearch.
-      type: string
-      value: "true"
-      env: "bootstrap.memory_lock"
+#    bootstrap:
+#      description: Set the bootstrap memory lock for OpenSearch.
+#      type: string
+#      value: "true"
+#      env: "bootstrap.memory_lock"
     opensearch:
       description: Set the OpenSearch memory lock for OpenSearch.
       type: string
-      value: "-Xms512m -Xmx512m"
+      value: "-Xms256m -Xmx256m"
       env: "OPENSEARCH_JAVA_OPTS"
 
 
 single-node:
   defines: runnable
   inherits: opensearch/base
-  connections:
-    opensearch-node2:
-      runnable: opensearch/opensearch-node2
-      service: http-service
   variables:
     defines: variables
-    node-name:
-      description: Set the node name for OpenSearch.
-      type: string
-      value: "opensearch-node1"
-      env: "node.name"
     discovery:
       description: Set the discovery type for OpenSearch.
       type: string
@@ -87,7 +75,7 @@ opensearch-node1:
   connections:
     opensearch-node1:
       runnable: opensearch/opensearch-node2
-      service: http-servicev
+      service: http-service
   variables:
     defines: variables
     node-name:
