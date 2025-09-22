@@ -6,7 +6,7 @@ base:
   defines: runnable
   containers:
     node:
-      image: opensearchproject/opensearch:latest
+      image: <- `${image}`
       paths:
         - '<- `${monk-volume-path}/opensearch:/usr/share/opensearch/data`'
       ulimits:
@@ -30,7 +30,10 @@ base:
       host-port: 9600
       publish: false
   variables:
-    defines: variables
+    image:
+      description: Set the OpenSearch image.
+      type: string
+      value: "opensearchproject/opensearch:3"
     cluster-name:
       description: Set the cluster name for OpenSearch.
       type: string
@@ -46,11 +49,11 @@ base:
       type: bool
       value: true
       env: "DISABLE_SECURITY_PLUGIN"
-#    bootstrap:
-#      description: Set the bootstrap memory lock for OpenSearch.
-#      type: string
-#      value: "true"
-#      env: "bootstrap.memory_lock"
+    #    bootstrap:
+    #      description: Set the bootstrap memory lock for OpenSearch.
+    #      type: string
+    #      value: "true"
+    #      env: "bootstrap.memory_lock"
     opensearch:
       description: Set the OpenSearch memory lock for OpenSearch.
       type: string
@@ -190,5 +193,3 @@ single-node-stack:
   runnable-list:
     - opensearch/single-node
     - opensearch/opensearch-single-dashboards
-
-
