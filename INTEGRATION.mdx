@@ -1,0 +1,103 @@
+---
+title: OpenSearch
+description: Single-node or small-cluster OpenSearch via Monk runnables. Run directly or inherit to add search to your stack.
+primary_category: database
+tags: [opensearch, search, analytics, elastic, elk, template, runnable]
+integration_type: template
+hosting_models: [self-hosted]
+website_url: https://opensearch.org/
+docs_url: https://opensearch.org/docs/latest/
+publisher: monk.io
+---
+
+## Overview
+
+This repository provides OpenSearch runnables for local dev or small clusters. You can:
+
+- Run a single-node OpenSearch + Dashboards quickly
+- Inherit the runnable in your stack and wire services via connections
+- Scale to a simple two-node demo with dashboards
+
+## What’s included
+
+- Runnable `opensearch/single-node` exposing ports 9200 (HTTP) and 9600 (REST)
+- Optional OpenSearch Dashboards runnables
+- Persistent data volume at `${monk-volume-path}/opensearch`
+- Tunable environment via variables (image, cluster name, security, Java opts)
+
+## Quick start (single-node)
+
+```bash
+monk load MANIFEST
+monk run opensearch/single-node
+```
+
+OpenSearch API: http://localhost:9200
+
+Dashboards (optional):
+
+```bash
+monk run opensearch/opensearch-single-dashboards
+```
+
+## Configuration
+
+Key variables in `opensearch.yaml`:
+
+```yaml
+variables:
+  image: "opensearchproject/opensearch:3"
+  cluster-name: "opensearch-cluster"        # env: cluster.name
+  password: "Cscjk..."                      # env: OPENSEARCH_INITIAL_ADMIN_PASSWORD
+  disable-security: true                     # env: DISABLE_SECURITY_PLUGIN
+  opensearch: "-Xms256m -Xmx256m"           # env: OPENSEARCH_JAVA_OPTS
+```
+
+Note: when running the base runnable directly, these values come from the template. To keep secrets out of YAML, prefer inheriting and referencing Monk secrets.
+
+## Inherit and connect from your app
+
+```yaml
+namespace: myapp
+
+search:
+  defines: runnable
+  inherits: opensearch/single-node
+
+api:
+  defines: runnable
+  containers:
+    api:
+      image: myorg/api
+  connections:
+    search:
+      runnable: search
+      service: http-service
+  variables:
+    opensearch-host:
+      value: <- connection-hostname("search")
+    opensearch-port:
+      value: <- connection-port("search")
+```
+
+Then run your group:
+
+```bash
+monk run myapp/api
+```
+
+## Ports
+
+- 9200/tcp: OpenSearch HTTP
+- 9600/tcp: REST API
+- 5601/tcp: Dashboards (if enabled)
+
+## Persistence
+
+Data is stored at `${monk-volume-path}/opensearch:/usr/share/opensearch/data`.
+
+## Troubleshooting
+
+- If security plugin is enabled, ensure `OPENSEARCH_INITIAL_ADMIN_PASSWORD` is set and meets complexity rules.
+- For multi-node demos, verify `discovery.seed_hosts` and `cluster.initial_cluster_manager_nodes` match connection hostnames.
+
